@@ -59,7 +59,7 @@ public class MainActivity extends Activity {
         playerView.setPlayer(player);
         player.addListener(new Player.Listener(){
             @Override public void onPlayerError(PlaybackException error){
-                status.setText("تعذّر التشغيل: "+error.getErrorCodeName()+" — قد يكون الرابط منتهيًا أو الصيغة غير مدعومة");
+                if(status!=null)status.setText("تعذّر التشغيل: "+error.getErrorCodeName()+" — قد يكون الرابط منتهيًا أو الصيغة غير مدعومة");
             }
             @Override public void onPlaybackStateChanged(int state){
                 if(state==Player.STATE_BUFFERING) status.setText("جارٍ تحميل البث…");
@@ -68,167 +68,264 @@ public class MainActivity extends Activity {
         });
     }
 
+    private LinearLayout pageContainer;
+    private String currentPage="home";
+
     private void buildUi(){
         getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        ScrollView scroll=new ScrollView(this);
-        scroll.setFillViewport(true);
-        scroll.setBackgroundColor(bg);
-        LinearLayout root=new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18),dp(14),dp(18),dp(22));
-        scroll.addView(root);
+        LinearLayout shell=new LinearLayout(this);
+        shell.setOrientation(LinearLayout.VERTICAL);
+        shell.setBackgroundColor(bg);
 
+        LinearLayout top=new LinearLayout(this);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        top.setPadding(dp(18),dp(8),dp(18),dp(8));
+        top.setBackgroundColor(Color.rgb(12,22,37));
         LinearLayout brand=new LinearLayout(this);
-        brand.setGravity(Gravity.CENTER_VERTICAL);
         brand.setOrientation(LinearLayout.VERTICAL);
-        brand.setPadding(dp(2),dp(10),dp(2),dp(14));
-        TextView title=text("آل راشد",30,gold,true);
-        title.setGravity(Gravity.CENTER);
-        brand.addView(title,match(dp(42)));
-        TextView sub=text("IPTV  •  مشغّل التلفاز الذكي",14,Color.rgb(178,190,207),false);
-        sub.setGravity(Gravity.CENTER);
-        brand.addView(sub,match(dp(28)));
-        root.addView(brand);
+        TextView brandTitle=text("آل راشد IPTV",22,gold,true);
+        brand.addView(brandTitle);
+        TextView brandSub=text("مشغّل التلفاز الذكي",11,Color.rgb(170,187,207),false);
+        brand.addView(brandSub);
+        top.addView(brand,new LinearLayout.LayoutParams(0,dp(56),1));
+        TextView statusChip=text("●  جاهز",12,Color.rgb(88,220,159),true);
+        top.addView(statusChip);
+        shell.addView(top,match(dp(70)));
 
-        // TV-first dashboard banner: deliberately different from the old plain form screen.
+        HorizontalScrollView navScroll=new HorizontalScrollView(this);
+        navScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout nav=new LinearLayout(this);
+        nav.setPadding(dp(10),dp(6),dp(10),dp(6));
+        nav.setGravity(Gravity.CENTER_VERTICAL);
+        nav.addView(navButton("الرئيسية","home"));
+        nav.addView(navButton("البث المباشر","live"));
+        nav.addView(navButton("المصادر","sources"));
+        nav.addView(navButton("المفضلة","favorites"));
+        nav.addView(navButton("الإعدادات","settings"));
+        navScroll.addView(nav);
+        navScroll.setBackgroundColor(Color.rgb(15,27,43));
+        shell.addView(navScroll,match(dp(56)));
+
+        pageContainer=new LinearLayout(this);
+        pageContainer.setOrientation(LinearLayout.VERTICAL);
+        pageContainer.setPadding(dp(14),dp(10),dp(14),dp(16));
+        ScrollView pageScroll=new ScrollView(this);
+        pageScroll.setFillViewport(true);
+        pageScroll.addView(pageContainer);
+        shell.addView(pageScroll,new LinearLayout.LayoutParams(-1,0,1));
+        setContentView(shell);
+        showPage("home");
+    }
+
+    private Button navButton(String label,String page){
+        Button b=new Button(this);
+        b.setText(label);b.setTextSize(13);b.setAllCaps(false);
+        b.setTextColor(page.equals(currentPage)?gold:Color.WHITE);
+        b.setBackground(roundRect(Color.rgb(24,39,59),dp(12)));
+        b.setPadding(dp(12),0,dp(12),0);
+        b.setOnClickListener(v->showPage(page));
+        return b;
+    }
+
+    private void showPage(String page){
+        currentPage=page;
+        if(pageContainer==null)return;
+        pageContainer.removeAllViews();
+        if("home".equals(page))buildHomePage();
+        else if("sources".equals(page))buildSourcesPage();
+        else if("live".equals(page)||"favorites".equals(page))buildLivePage("favorites".equals(page));
+        else if("settings".equals(page))buildSettingsPage();
+    }
+
+    private void buildHomePage(){
         LinearLayout hero=card();
-        hero.setPadding(dp(18),dp(16),dp(18),dp(16));
-        hero.setBackground(roundRect(Color.rgb(18,43,65),dp(20)));
-        LinearLayout.LayoutParams heroParams=match(-2);
-        heroParams.bottomMargin=dp(14);
-        root.addView(hero,heroParams);
-        LinearLayout liveLine=new LinearLayout(this);
-        liveLine.setGravity(Gravity.CENTER_VERTICAL);
-        TextView liveDot=text("●  مباشر",13,Color.rgb(82,220,154),true);
-        liveLine.addView(liveDot,new LinearLayout.LayoutParams(0,dp(28),1));
-        TextView versionTag=text("AL RASHED  •  TV",11,Color.rgb(190,205,222),true);
-        liveLine.addView(versionTag);
-        hero.addView(liveLine,match(dp(30)));
-        TextView heroTitle=text("كل قنواتك في مكان واحد",23,Color.WHITE,true);
-        heroTitle.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
-        hero.addView(heroTitle,match(dp(42)));
-        TextView heroSubtitle=text("مشغّل IPTV للموبايل والتلفاز — بحث سريع، مفضلة، وتحكم بالتشغيل",13,Color.rgb(190,205,222),false);
-        heroSubtitle.setMaxLines(2);
-        hero.addView(heroSubtitle,match(dp(42)));
-        LinearLayout metrics=new LinearLayout(this);
-        metrics.setGravity(Gravity.CENTER_VERTICAL);
-        metrics.setPadding(0,dp(8),0,0);
-        TextView metricChannels=text("القنوات  •  جاهز",12,Color.WHITE,true);
-        metrics.addView(metricChannels,new LinearLayout.LayoutParams(0,dp(32),1));
-        TextView metricFav=text("★  "+favorites.size()+" مفضلة",12,gold,true);
-        metrics.addView(metricFav);
-        hero.addView(metrics,match(dp(38)));
+        hero.setPadding(dp(18),dp(18),dp(18),dp(18));
+        hero.setBackground(roundRect(Color.rgb(20,48,72),dp(22)));
+        TextView eyebrow=text("AL RASHED  /  IPTV",12,gold,true);
+        hero.addView(eyebrow,match(dp(28)));
+        TextView title=text("عالم المشاهدة،\nبأسلوبك أنت",28,Color.WHITE,true);
+        title.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+        hero.addView(title,match(dp(88)));
+        TextView desc=text("قنواتك المباشرة في واجهة واحدة. أضف مصدرك، خصّص المشغّل، وابدأ المشاهدة.",14,Color.rgb(199,213,229),false);
+        desc.setMaxLines(3);
+        hero.addView(desc,match(dp(58)));
+        Button go=button("▶   ابدأ المشاهدة");
+        hero.addView(go,match(dp(50)));
+        go.setOnClickListener(v->showPage(allChannels.isEmpty()?"sources":"live"));
+        LinearLayout.LayoutParams hp=match(-2);hp.bottomMargin=dp(14);
+        pageContainer.addView(hero,hp);
 
-        LinearLayout sourceCard=card();
-        root.addView(sourceCard,match(-2));
-        addSectionTitle(sourceCard,"مصدر البث","أضف اشتراكك أو قائمة القنوات");
+        LinearLayout stats=card();
+        TextView statsTitle=text("مكتبتك",19,Color.WHITE,true);
+        stats.addView(statsTitle,match(dp(34)));
+        TextView count=text(allChannels.size()+" قناة محمّلة",14,Color.rgb(180,195,213),false);
+        stats.addView(count,match(dp(30)));
+        TextView favCount=text("★  "+favorites.size()+" قناة في المفضلة",14,gold,true);
+        stats.addView(favCount,match(dp(30)));
+        pageContainer.addView(stats,match(-2));
+
+        TextView quickTitle=text("الوصول السريع",19,Color.WHITE,true);
+        LinearLayout.LayoutParams qt=match(dp(42));qt.topMargin=dp(8);
+        pageContainer.addView(quickTitle,qt);
+        pageContainer.addView(homeAction("▦","إضافة مصدر","M3U / Xtream Codes / Stalker Portal",()->showPage("sources")),match(-2));
+        pageContainer.addView(homeAction("▶","القنوات المباشرة","تصفح القنوات وابحث ضمن مجموعاتك",()->showPage("live")),match(-2));
+        pageContainer.addView(homeAction("⚙","تخصيص التطبيق","التحكم بالصورة والتشغيل وسلوك المشغّل",()->showPage("settings")),match(-2));
+    }
+
+    private LinearLayout homeAction(String symbol,String title,String subtitle,Runnable action){
+        LinearLayout row=card();row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);
+        TextView ico=text(symbol,24,gold,true);ico.setGravity(Gravity.CENTER);
+        row.addView(ico,new LinearLayout.LayoutParams(dp(48),dp(56)));
+        LinearLayout words=new LinearLayout(this);words.setOrientation(LinearLayout.VERTICAL);words.setPadding(dp(10),0,dp(8),0);
+        words.addView(text(title,16,Color.WHITE,true));
+        words.addView(text(subtitle,12,Color.rgb(164,181,202),false));
+        row.addView(words,new LinearLayout.LayoutParams(0,-2,1));
+        row.addView(text("‹",24,gold,true));
+        row.setOnClickListener(v->action.run());
+        LinearLayout.LayoutParams p=match(-2);p.bottomMargin=dp(8);
+        row.setFocusable(true);row.setClickable(true);
+        return row;
+    }
+
+    private void buildSourcesPage(){
+        TextView heading=text("مصادر البث",25,Color.WHITE,true);pageContainer.addView(heading,match(dp(44)));
+        pageContainer.addView(text("أدخل بيانات اشتراك تملك حق استخدامه. يمكنك تبديل نوع المصدر من القائمة.",13,Color.rgb(171,188,207),false),match(dp(44)));
+        LinearLayout sourceCard=card();pageContainer.addView(sourceCard,match(-2));
         sourceSpinner=new Spinner(this);
-        ArrayAdapter<String> sources=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,
-            new String[]{"قائمة M3U / M3U8","Xtream Codes","Stalker Portal"});
-        sources.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        sourceSpinner.setAdapter(sources);
-        styleSpinner(sourceSpinner);
+        ArrayAdapter<String> sources=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,new String[]{"قائمة M3U / M3U8","Xtream Codes","Stalker Portal"});
+        sources.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);sourceSpinner.setAdapter(sources);styleSpinner(sourceSpinner);
+        sourceCard.addView(text("نوع المصدر",13,Color.rgb(170,188,207),true),match(dp(28)));
         sourceCard.addView(sourceSpinner,match(dp(48)));
-        addressField=field("رابط قائمة M3U أو عنوان السيرفر");
-        sourceCard.addView(addressField,match(dp(48)));
-        userField=field("اسم المستخدم");
-        sourceCard.addView(userField,match(dp(46)));
-        passField=field("كلمة المرور");
-        passField.setInputType(129);
-        sourceCard.addView(passField,match(dp(46)));
-        macField=field("MAC المخصص لاشتراك Stalker");
-        sourceCard.addView(macField,match(dp(46)));
+        addressField=field("رابط قائمة M3U أو عنوان السيرفر");sourceCard.addView(addressField,match(dp(50)));
+        userField=field("اسم المستخدم");sourceCard.addView(userField,match(dp(48)));
+        passField=field("كلمة المرور");passField.setInputType(129);sourceCard.addView(passField,match(dp(48)));
+        macField=field("MAC المخصص لاشتراك Stalker");sourceCard.addView(macField,match(dp(48)));
         sourceSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
             @Override public void onItemSelected(AdapterView<?> p,View v,int pos,long id){
-                userField.setVisibility(pos==1?View.VISIBLE:View.GONE);
-                passField.setVisibility(pos==1?View.VISIBLE:View.GONE);
+                userField.setVisibility(pos==1?View.VISIBLE:View.GONE);passField.setVisibility(pos==1?View.VISIBLE:View.GONE);
                 macField.setVisibility(pos==2?View.VISIBLE:View.GONE);
                 addressField.setHint(pos==0?"رابط قائمة M3U / M3U8":pos==1?"عنوان السيرفر مثل https://server:8080":"رابط Stalker Portal");
             }
             @Override public void onNothingSelected(AdapterView<?> p){}
         });
-        Button load=button("＋   تحميل القنوات");
-        load.setTextSize(16);
-        sourceCard.addView(load,match(dp(50)));
-        load.setOnClickListener(v->loadSource());
+        Button load=button("＋   حفظ المصدر وتحميل القنوات");sourceCard.addView(load,match(dp(52)));load.setOnClickListener(v->loadSource());
+        Button back=secondaryButton("العودة للرئيسية");sourceCard.addView(back,match(dp(46)));back.setOnClickListener(v->showPage("home"));
+        status=text("لم يتم تحميل مصدر بعد.",13,Color.rgb(176,193,211),false);sourceCard.addView(status,match(-2));
+    }
 
-        LinearLayout library=card();
-        LinearLayout.LayoutParams libParams=match(-2);
-        libParams.topMargin=dp(12);
-        root.addView(library,libParams);
-        addSectionTitle(library,"مكتبتك","ابحث وصنّف القنوات بسرعة");
-        searchField=field("ابحث عن قناة أو مجموعة…");
-        library.addView(searchField,match(dp(46)));
+    private void buildLivePage(boolean favOnly){
+        TextView heading=text(favOnly?"قنواتي المفضلة":"البث المباشر",25,Color.WHITE,true);
+        pageContainer.addView(heading,match(dp(44)));
+        LinearLayout playerCard=card();pageContainer.addView(playerCard,match(-2));
+        nowPlaying=text("اختر قناة لبدء المشاهدة",16,Color.WHITE,true);playerCard.addView(nowPlaying,match(dp(38)));
+        playerView=new PlayerView(this);playerView.setPlayer(player);playerView.setUseController(true);
+        playerView.setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS);
+        playerView.setResizeMode(getResizeMode());
+        playerView.setVisibility(View.VISIBLE);
+        playerCard.addView(playerView,new LinearLayout.LayoutParams(-1,dp(230)));
+        status=text("جاهز. حمّل مصدرًا من صفحة المصادر إذا كانت القائمة فارغة.",13,Color.rgb(174,191,210),false);
+        playerCard.addView(status,match(-2));
+        searchField=field("ابحث باسم القناة أو المجموعة…");pageContainer.addView(searchField,match(dp(50)));
         searchField.addTextChangedListener(new TextWatcher(){
             public void beforeTextChanged(CharSequence s,int st,int c,int a){}
             public void onTextChanged(CharSequence s,int start,int before,int count){filterChannels();}
             public void afterTextChanged(Editable e){}
         });
-        LinearLayout actions=new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        Button all=button("كل القنوات");
-        Button fav=button("★  المفضلة");
-        all.setTextSize(14);fav.setTextSize(14);
-        LinearLayout.LayoutParams half=new LinearLayout.LayoutParams(0,dp(44),1);
-        half.setMargins(0,dp(3),dp(5),dp(3));
-        actions.addView(all,half);
-        LinearLayout.LayoutParams half2=new LinearLayout.LayoutParams(0,dp(44),1);
-        half2.setMargins(dp(5),dp(3),0,dp(3));
-        actions.addView(fav,half2);
-        library.addView(actions,match(dp(50)));
+        LinearLayout controls=new LinearLayout(this);controls.setGravity(Gravity.CENTER_VERTICAL);
+        Button all=secondaryButton("كل القنوات");Button fav=secondaryButton("★ المفضلة");
+        controls.addView(all,new LinearLayout.LayoutParams(0,dp(46),1));
+        controls.addView(fav,new LinearLayout.LayoutParams(0,dp(46),1));
+        pageContainer.addView(controls,match(dp(50)));
         all.setOnClickListener(v->{onlyFavorites=false;filterChannels();});
         fav.setOnClickListener(v->{onlyFavorites=true;filterChannels();});
-
-        LinearLayout playerCard=card();
-        LinearLayout.LayoutParams playerParams=match(-2);
-        playerParams.topMargin=dp(12);
-        root.addView(playerCard,playerParams);
-        nowPlaying=text("جاهز للمشاهدة",17,Color.WHITE,true);
-        playerCard.addView(nowPlaying,match(dp(36)));
-        playerView=new PlayerView(this);
-        playerView.setUseController(true);
-        playerView.setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS);
-        playerView.setVisibility(View.GONE);
-        playerCard.addView(playerView,new LinearLayout.LayoutParams(-1,dp(220)));
-        TextView placeholder=text("اختر قناة من القائمة لبدء المشاهدة",14,Color.rgb(178,190,207),false);
-        placeholder.setGravity(Gravity.CENTER);
-        placeholder.setPadding(dp(8),dp(12),dp(8),dp(12));
-        playerCard.addView(placeholder,match(dp(56)));
-        status=text("أدخل بيانات مصدر IPTV تملك حق استخدامه، ثم اضغط تحميل القنوات.",13,Color.rgb(178,190,207),false);
-        status.setGravity(Gravity.CENTER_VERTICAL);
-        playerCard.addView(status,match(-2));
-
-        LinearLayout channelsCard=card();
-        LinearLayout.LayoutParams channelsParams=match(-2);
-        channelsParams.topMargin=dp(12);
-        root.addView(channelsCard,channelsParams);
-        LinearLayout headingRow=new LinearLayout(this);
-        headingRow.setGravity(Gravity.CENTER_VERTICAL);
-        TextView heading=text("القنوات",20,Color.WHITE,true);
-        headingRow.addView(heading,new LinearLayout.LayoutParams(0,dp(42),1));
-        empty=text("0 قناة",13,Color.rgb(178,190,207),false);
-        headingRow.addView(empty);
-        channelsCard.addView(headingRow,match(dp(42)));
-        listView=new ListView(this);
-        listView.setBackgroundColor(panel);
-        listView.setDivider(new android.graphics.drawable.ColorDrawable(Color.rgb(38,52,72)));
-        listView.setDividerHeight(dp(1));
-        listView.setFocusable(true);
-        listView.setNestedScrollingEnabled(false);
-        listView.setAdapter(new ChannelAdapter());
-        channelsCard.addView(listView,new LinearLayout.LayoutParams(-1,dp(300)));
+        LinearLayout channels=card();pageContainer.addView(channels,match(-2));
+        LinearLayout head=new LinearLayout(this);head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(text("قائمة القنوات",18,Color.WHITE,true),new LinearLayout.LayoutParams(0,dp(40),1));
+        empty=text("0 قناة",13,gold,true);head.addView(empty);channels.addView(head,match(dp(42)));
+        listView=new ListView(this);listView.setBackgroundColor(panel);
+        listView.setDivider(new android.graphics.drawable.ColorDrawable(Color.rgb(38,52,72)));listView.setDividerHeight(dp(1));
+        listView.setNestedScrollingEnabled(false);listView.setAdapter(new ChannelAdapter());
+        channels.addView(listView,new LinearLayout.LayoutParams(-1,dp(360)));
         listView.setOnItemClickListener((p,v,pos,id)->play(visibleChannels.get(pos)));
         listView.setOnItemLongClickListener((p,v,pos,id)->{
-            Channel c=visibleChannels.get(pos);
-            if(!favorites.add(c.key()))favorites.remove(c.key());
-            saveFavorites();
-            ((BaseAdapter)listView.getAdapter()).notifyDataSetChanged();
-            status.setText(favorites.contains(c.key())?"أضيفت إلى المفضلة":"أزيلت من المفضلة");
-            return true;
+            Channel ch=visibleChannels.get(pos);
+            if(!favorites.add(ch.key()))favorites.remove(ch.key());
+            saveFavorites();((BaseAdapter)listView.getAdapter()).notifyDataSetChanged();
+            status.setText(favorites.contains(ch.key())?"أضيفت إلى المفضلة":"أزيلت من المفضلة");return true;
         });
-        TextView hint=text("اضغط مطولًا على القناة لإضافتها إلى المفضلة",12,Color.rgb(150,164,183),false);
-        channelsCard.addView(hint,match(dp(30)));
-        setContentView(scroll);
+        pageContainer.addView(text("اضغط مطولًا على أي قناة لتبديل حالة المفضلة.",12,Color.rgb(145,163,185),false),match(dp(30)));
+        onlyFavorites=favOnly;filterChannels();
+    }
+
+    private void buildSettingsPage(){
+        TextView heading=text("الإعدادات والتحكم",25,Color.WHITE,true);pageContainer.addView(heading,match(dp(48)));
+        pageContainer.addView(text("خصص سلوك التطبيق حسب هاتفك أو جهاز التلفاز.",13,Color.rgb(174,191,210),false),match(dp(34)));
+        LinearLayout playback=card();pageContainer.addView(playback,match(-2));
+        playback.addView(text("المشغّل والصورة",18,Color.WHITE,true),match(dp(38)));
+        playback.addView(text("ملاءمة أبعاد الفيديو",13,Color.rgb(174,191,210),false),match(dp(28)));
+        Spinner resize=new Spinner(this);
+        ArrayAdapter<String> resizeAdapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,new String[]{"احتواء كامل (FIT)","ملء الشاشة (FILL)","تكبير لقص الحواف (ZOOM)"});
+        resizeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);resize.setAdapter(resizeAdapter);styleSpinner(resize);
+        resize.setSelection(prefs.getInt("resize_mode",0));playback.addView(resize,match(dp(48)));
+        resize.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+            @Override public void onItemSelected(AdapterView<?> p,View v,int pos,long id){
+                prefs.edit().putInt("resize_mode",pos).apply();
+                if(playerView!=null)playerView.setResizeMode(pos==1?androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL:pos==2?androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM:androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT);
+            }
+            @Override public void onNothingSelected(AdapterView<?> p){}
+        });
+        playback.addView(text("سرعة التشغيل",13,Color.rgb(174,191,210),false),match(dp(28)));
+        Spinner speed=new Spinner(this);
+        ArrayAdapter<String> speedAdapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,new String[]{"0.75×","1.0×","1.25×","1.5×","2.0×"});
+        speedAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);speed.setAdapter(speedAdapter);styleSpinner(speed);
+        int savedSpeed=prefs.getInt("playback_speed",1);speed.setSelection(savedSpeed);playback.addView(speed,match(dp(48)));
+        speed.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+            @Override public void onItemSelected(AdapterView<?> p,View v,int pos,long id){
+                prefs.edit().putInt("playback_speed",pos).apply();
+                if(player!=null){float[] rates={0.75f,1f,1.25f,1.5f,2f};player.setPlaybackSpeed(rates[pos]);}
+            }
+            @Override public void onNothingSelected(AdapterView<?> p){}
+        });
+
+        LinearLayout behavior=card();LinearLayout.LayoutParams bp=match(-2);bp.topMargin=dp(12);pageContainer.addView(behavior,bp);
+        behavior.addView(text("سلوك التطبيق",18,Color.WHITE,true),match(dp(38)));
+        addToggle(behavior,"إبقاء الشاشة مضاءة أثناء المشاهدة","keep_screen_on",false,(checked)->{
+            if(checked)getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        });
+        addToggle(behavior,"تشغيل أول قناة تلقائيًا بعد التحميل","auto_play_first",false,(checked)->{});
+        addToggle(behavior,"إظهار رسائل حالة التشغيل","show_status",true,(checked)->{});
+        addToggle(behavior,"استعادة آخر مصدر أدخلته على الجهاز","remember_source",true,(checked)->{});
+        LinearLayout appearance=card();LinearLayout ap=match(-2);ap.topMargin=dp(12);pageContainer.addView(appearance,ap);
+        appearance.addView(text("المظهر والتنظيم",18,Color.WHITE,true),match(dp(38)));
+        addToggle(appearance,"قائمة قنوات أكثر كثافة","compact_channels",false,(checked)->{if("live".equals(currentPage)||"favorites".equals(currentPage))showPage(currentPage);});
+        appearance.addView(text("اللون الحالي: كحلي وذهبي",13,Color.rgb(174,191,210),false),match(dp(34)));
+        Button reset=secondaryButton("إعادة ضبط إعدادات المشغّل");
+        LinearLayout.LayoutParams rp=match(dp(48));rp.topMargin=dp(12);pageContainer.addView(reset,rp);
+        reset.setOnClickListener(v->{
+            prefs.edit().remove("resize_mode").remove("playback_speed").remove("keep_screen_on").remove("auto_play_first").remove("show_status").remove("remember_source").remove("compact_channels").apply();
+            if(player!=null)player.setPlaybackSpeed(1f);
+            getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            toast("أُعيد ضبط الإعدادات");showPage("settings");
+        });
+    }
+
+    private interface ToggleAction{void changed(boolean checked);}
+    private void addToggle(LinearLayout parent,String label,String key,boolean defaultValue,ToggleAction action){
+        Switch sw=new Switch(this);sw.setText(label);sw.setTextColor(Color.WHITE);sw.setTextSize(14);
+        sw.setPadding(0,dp(8),0,dp(8));sw.setChecked(prefs.getBoolean(key,defaultValue));
+        parent.addView(sw,match(dp(54)));
+        if("keep_screen_on".equals(key)&&sw.isChecked())getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        sw.setOnCheckedChangeListener((button,checked)->{prefs.edit().putBoolean(key,checked).apply();action.changed(checked);});
+    }
+
+    private int getResizeMode(){
+        int mode=prefs.getInt("resize_mode",0);
+        return mode==1?androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL:mode==2?androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM:androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT;
+    }
+    private Button secondaryButton(String label){
+        Button b=new Button(this);b.setText(label);b.setTextSize(13);b.setTextColor(Color.WHITE);b.setAllCaps(false);
+        b.setBackground(roundRect(Color.rgb(34,50,72),dp(12)));return b;
     }
 
     private LinearLayout card(){
@@ -259,7 +356,7 @@ public class MainActivity extends Activity {
             Channel c=visibleChannels.get(p);
             LinearLayout row=new LinearLayout(MainActivity.this);
             row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(12),dp(8),dp(12),dp(8));
+            row.setPadding(dp(12),dp(prefs.getBoolean("compact_channels",false)?3:8),dp(12),dp(prefs.getBoolean("compact_channels",false)?3:8));
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setBackgroundColor(panel);
             TextView badge=text(favorites.contains(c.key())?"★":"▶",17,gold,true);
@@ -268,7 +365,7 @@ public class MainActivity extends Activity {
             LinearLayout details=new LinearLayout(MainActivity.this);
             details.setOrientation(LinearLayout.VERTICAL);
             details.setPadding(dp(8),0,dp(8),0);
-            TextView name=text(c.name,15,Color.WHITE,true);
+            TextView name=text(c.name,prefs.getBoolean("compact_channels",false)?13:15,Color.WHITE,true);
             name.setMaxLines(1);name.setEllipsize(android.text.TextUtils.TruncateAt.END);
             details.addView(name);
             String group=(c.group==null||c.group.isEmpty())?"بث مباشر":c.group;
