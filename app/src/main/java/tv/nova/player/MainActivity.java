@@ -3,6 +3,7 @@ package tv.nova.player;
 import android.app.*;
 import android.os.*;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.view.*;
 import android.widget.*;
 import android.text.*;
