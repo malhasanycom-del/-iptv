@@ -69,59 +69,157 @@ public class MainActivity extends Activity {
     }
 
     private void buildUi(){
-        ScrollView scroll=new ScrollView(this); scroll.setFillViewport(true); scroll.setBackgroundColor(bg);
-        LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(14),dp(10),dp(14),dp(14)); scroll.addView(root);
-        TextView title=text("آل راشد IPTV",26,gold,true); title.setGravity(Gravity.CENTER);
-        root.addView(title,new LinearLayout.LayoutParams(-1,dp(48)));
-        TextView sub=text("مشغّل مجاني للهاتف والتلفاز • M3U / Xtream / Stalker",13,Color.LTGRAY,false); sub.setGravity(Gravity.CENTER);
-        root.addView(sub,new LinearLayout.LayoutParams(-1,dp(28)));
+        getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        ScrollView scroll=new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(bg);
+        LinearLayout root=new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(18),dp(14),dp(18),dp(22));
+        scroll.addView(root);
 
+        LinearLayout brand=new LinearLayout(this);
+        brand.setGravity(Gravity.CENTER_VERTICAL);
+        brand.setOrientation(LinearLayout.VERTICAL);
+        brand.setPadding(dp(2),dp(10),dp(2),dp(14));
+        TextView title=text("آل راشد",30,gold,true);
+        title.setGravity(Gravity.CENTER);
+        brand.addView(title,match(dp(42)));
+        TextView sub=text("IPTV  •  مشغّل التلفاز الذكي",14,Color.rgb(178,190,207),false);
+        sub.setGravity(Gravity.CENTER);
+        brand.addView(sub,match(dp(28)));
+        root.addView(brand);
+
+        LinearLayout sourceCard=card();
+        root.addView(sourceCard,match(-2));
+        addSectionTitle(sourceCard,"مصدر البث","أضف اشتراكك أو قائمة القنوات");
         sourceSpinner=new Spinner(this);
-        ArrayAdapter<String> sources=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,
-            new String[]{"قائمة M3U / M3U8","Xtream Codes API","Stalker Portal"});
-        sourceSpinner.setAdapter(sources); styleSpinner(sourceSpinner);
-        root.addView(sourceSpinner,match(dp(48)));
-        addressField=field("رابط قائمة M3U أو رابط السيرفر / Portal");
-        root.addView(addressField,match(dp(48)));
-        userField=field("اسم المستخدم (Xtream)"); root.addView(userField,match(dp(46)));
-        passField=field("كلمة المرور (Xtream)"); passField.setInputType(129); root.addView(passField,match(dp(46)));
-        macField=field("عنوان MAC لجهازك/اشتراكك (Stalker) مثال 00:1A:79:XX:XX:XX"); root.addView(macField,match(dp(46)));
+        ArrayAdapter<String> sources=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,
+            new String[]{"قائمة M3U / M3U8","Xtream Codes","Stalker Portal"});
+        sources.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        sourceSpinner.setAdapter(sources);
+        styleSpinner(sourceSpinner);
+        sourceCard.addView(sourceSpinner,match(dp(48)));
+        addressField=field("رابط قائمة M3U أو عنوان السيرفر");
+        sourceCard.addView(addressField,match(dp(48)));
+        userField=field("اسم المستخدم");
+        sourceCard.addView(userField,match(dp(46)));
+        passField=field("كلمة المرور");
+        passField.setInputType(129);
+        sourceCard.addView(passField,match(dp(46)));
+        macField=field("MAC المخصص لاشتراك Stalker");
+        sourceCard.addView(macField,match(dp(46)));
         sourceSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
             @Override public void onItemSelected(AdapterView<?> p,View v,int pos,long id){
                 userField.setVisibility(pos==1?View.VISIBLE:View.GONE);
                 passField.setVisibility(pos==1?View.VISIBLE:View.GONE);
                 macField.setVisibility(pos==2?View.VISIBLE:View.GONE);
-                addressField.setHint(pos==0?"رابط قائمة M3U / M3U8":pos==1?"عنوان السيرفر مثل https://example.com:8080":"رابط Stalker Portal مثل https://example.com/c/");
+                addressField.setHint(pos==0?"رابط قائمة M3U / M3U8":pos==1?"عنوان السيرفر مثل https://server:8080":"رابط Stalker Portal");
             }
             @Override public void onNothingSelected(AdapterView<?> p){}
         });
-        Button load=button("تحميل القنوات"); root.addView(load,match(dp(48)));
+        Button load=button("＋   تحميل القنوات");
+        load.setTextSize(16);
+        sourceCard.addView(load,match(dp(50)));
         load.setOnClickListener(v->loadSource());
-        searchField=field("ابحث عن قناة أو مجموعة…"); root.addView(searchField,match(dp(44)));
+
+        LinearLayout library=card();
+        LinearLayout.LayoutParams libParams=match(-2);
+        libParams.topMargin=dp(12);
+        root.addView(library,libParams);
+        addSectionTitle(library,"مكتبتك","ابحث وصنّف القنوات بسرعة");
+        searchField=field("ابحث عن قناة أو مجموعة…");
+        library.addView(searchField,match(dp(46)));
         searchField.addTextChangedListener(new TextWatcher(){
             public void beforeTextChanged(CharSequence s,int st,int c,int a){}
             public void onTextChanged(CharSequence s,int start,int before,int count){filterChannels();}
             public void afterTextChanged(Editable e){}
         });
-        LinearLayout actions=new LinearLayout(this); actions.setOrientation(LinearLayout.HORIZONTAL);
-        Button all=button("كل القنوات"), fav=button("★ المفضلة");
-        actions.addView(all,new LinearLayout.LayoutParams(0,dp(44),1)); actions.addView(fav,new LinearLayout.LayoutParams(0,dp(44),1));
-        root.addView(actions); all.setOnClickListener(v->{onlyFavorites=false;filterChannels();});
+        LinearLayout actions=new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        Button all=button("كل القنوات");
+        Button fav=button("★  المفضلة");
+        all.setTextSize(14);fav.setTextSize(14);
+        LinearLayout.LayoutParams half=new LinearLayout.LayoutParams(0,dp(44),1);
+        half.setMargins(0,dp(3),dp(5),dp(3));
+        actions.addView(all,half);
+        LinearLayout.LayoutParams half2=new LinearLayout.LayoutParams(0,dp(44),1);
+        half2.setMargins(dp(5),dp(3),0,dp(3));
+        actions.addView(fav,half2);
+        library.addView(actions,match(dp(50)));
+        all.setOnClickListener(v->{onlyFavorites=false;filterChannels();});
         fav.setOnClickListener(v->{onlyFavorites=true;filterChannels();});
-        nowPlaying=text("اختر قناة لبدء المشاهدة",14,gold,true); root.addView(nowPlaying,match(dp(34)));
-        playerView=new PlayerView(this); playerView.setUseController(true); playerView.setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS);
-        root.addView(playerView,new LinearLayout.LayoutParams(-1,dp(220)));
-        status=text("أدخل بيانات مصدر IPTV تملكه أو لديك إذن باستخدامه.",13,Color.LTGRAY,false);
-        root.addView(status,match(dp(42)));
-        TextView heading=text("القنوات",19,Color.WHITE,true); root.addView(heading,match(dp(36)));
-        listView=new ListView(this); listView.setBackgroundColor(panel); listView.setDividerHeight(dp(1));
-        listView.setFocusable(true); listView.setAdapter(new ChannelAdapter());
-        root.addView(listView,new LinearLayout.LayoutParams(-1,dp(420)));
+
+        LinearLayout playerCard=card();
+        LinearLayout.LayoutParams playerParams=match(-2);
+        playerParams.topMargin=dp(12);
+        root.addView(playerCard,playerParams);
+        nowPlaying=text("جاهز للمشاهدة",17,Color.WHITE,true);
+        playerCard.addView(nowPlaying,match(dp(36)));
+        playerView=new PlayerView(this);
+        playerView.setUseController(true);
+        playerView.setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS);
+        playerView.setVisibility(View.GONE);
+        playerCard.addView(playerView,new LinearLayout.LayoutParams(-1,dp(220)));
+        TextView placeholder=text("اختر قناة من القائمة لبدء المشاهدة",14,Color.rgb(178,190,207),false);
+        placeholder.setGravity(Gravity.CENTER);
+        placeholder.setPadding(dp(8),dp(12),dp(8),dp(12));
+        playerCard.addView(placeholder,match(dp(56)));
+        status=text("أدخل بيانات مصدر IPTV تملك حق استخدامه، ثم اضغط تحميل القنوات.",13,Color.rgb(178,190,207),false);
+        status.setGravity(Gravity.CENTER_VERTICAL);
+        playerCard.addView(status,match(-2));
+
+        LinearLayout channelsCard=card();
+        LinearLayout.LayoutParams channelsParams=match(-2);
+        channelsParams.topMargin=dp(12);
+        root.addView(channelsCard,channelsParams);
+        LinearLayout headingRow=new LinearLayout(this);
+        headingRow.setGravity(Gravity.CENTER_VERTICAL);
+        TextView heading=text("القنوات",20,Color.WHITE,true);
+        headingRow.addView(heading,new LinearLayout.LayoutParams(0,dp(42),1));
+        empty=text("0 قناة",13,Color.rgb(178,190,207),false);
+        headingRow.addView(empty);
+        channelsCard.addView(headingRow,match(dp(42)));
+        listView=new ListView(this);
+        listView.setBackgroundColor(panel);
+        listView.setDivider(new android.graphics.drawable.ColorDrawable(Color.rgb(38,52,72)));
+        listView.setDividerHeight(dp(1));
+        listView.setFocusable(true);
+        listView.setNestedScrollingEnabled(false);
+        listView.setAdapter(new ChannelAdapter());
+        channelsCard.addView(listView,new LinearLayout.LayoutParams(-1,dp(300)));
         listView.setOnItemClickListener((p,v,pos,id)->play(visibleChannels.get(pos)));
-        listView.setOnItemLongClickListener((p,v,pos,id)->{Channel c=visibleChannels.get(pos); if(!favorites.add(c.key()))favorites.remove(c.key()); saveFavorites(); ((BaseAdapter)listView.getAdapter()).notifyDataSetChanged(); status.setText(favorites.contains(c.key())?"أضيفت إلى المفضلة":"أزيلت من المفضلة"); return true;});
-        TextView hint=text("نصيحة: اضغط مطولًا على قناة لإضافتها إلى المفضلة أو إزالتها.",12,Color.LTGRAY,false); root.addView(hint,match(dp(32)));
+        listView.setOnItemLongClickListener((p,v,pos,id)->{
+            Channel c=visibleChannels.get(pos);
+            if(!favorites.add(c.key()))favorites.remove(c.key());
+            saveFavorites();
+            ((BaseAdapter)listView.getAdapter()).notifyDataSetChanged();
+            status.setText(favorites.contains(c.key())?"أضيفت إلى المفضلة":"أزيلت من المفضلة");
+            return true;
+        });
+        TextView hint=text("اضغط مطولًا على القناة لإضافتها إلى المفضلة",12,Color.rgb(150,164,183),false);
+        channelsCard.addView(hint,match(dp(30)));
         setContentView(scroll);
+    }
+
+    private LinearLayout card(){
+        LinearLayout box=new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(14),dp(12),dp(14),dp(12));
+        box.setBackground(roundRect(panel,dp(18)));
+        return box;
+    }
+    private void addSectionTitle(LinearLayout parent,String titleText,String subtitleText){
+        TextView title=text(titleText,18,Color.WHITE,true);
+        parent.addView(title,match(dp(30)));
+        TextView subtitle=text(subtitleText,12,Color.rgb(165,180,199),false);
+        parent.addView(subtitle,match(dp(25)));
+    }
+    private android.graphics.drawable.GradientDrawable roundRect(int color,int radius){
+        android.graphics.drawable.GradientDrawable d=new android.graphics.drawable.GradientDrawable();
+        d.setColor(color);d.setCornerRadius(radius);
+        d.setStroke(dp(1),Color.rgb(37,51,70));
+        return d;
     }
 
     private class ChannelAdapter extends BaseAdapter {
@@ -129,12 +227,30 @@ public class MainActivity extends Activity {
         public Object getItem(int p){return visibleChannels.get(p);}
         public long getItemId(int p){return p;}
         public View getView(int p,View convert,ViewGroup parent){
-            LinearLayout row=new LinearLayout(MainActivity.this); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(dp(10),dp(5),dp(10),dp(5)); row.setOrientation(LinearLayout.VERTICAL); row.setBackgroundColor(panel);
             Channel c=visibleChannels.get(p);
-            TextView name=text((favorites.contains(c.key())?"★  ":"")+c.name,16,Color.WHITE,true);
-            row.addView(name);
-            if(c.group!=null&&!c.group.isEmpty())row.addView(text(c.group,12,Color.LTGRAY,false));
-            row.setMinimumHeight(dp(54)); return row;
+            LinearLayout row=new LinearLayout(MainActivity.this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(12),dp(8),dp(12),dp(8));
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setBackgroundColor(panel);
+            TextView badge=text(favorites.contains(c.key())?"★":"▶",17,gold,true);
+            badge.setGravity(Gravity.CENTER);
+            row.addView(badge,new LinearLayout.LayoutParams(dp(34),dp(42)));
+            LinearLayout details=new LinearLayout(MainActivity.this);
+            details.setOrientation(LinearLayout.VERTICAL);
+            details.setPadding(dp(8),0,dp(8),0);
+            TextView name=text(c.name,15,Color.WHITE,true);
+            name.setMaxLines(1);name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            details.addView(name);
+            String group=(c.group==null||c.group.isEmpty())?"بث مباشر":c.group;
+            TextView meta=text(group,12,Color.rgb(165,180,199),false);
+            meta.setMaxLines(1);meta.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            details.addView(meta);
+            row.addView(details,new LinearLayout.LayoutParams(0,-2,1));
+            TextView play=text("›",25,Color.rgb(165,180,199),false);
+            play.setGravity(Gravity.CENTER);
+            row.addView(play,new LinearLayout.LayoutParams(dp(24),dp(42)));
+            return row;
         }
     }
 
@@ -232,6 +348,7 @@ public class MainActivity extends Activity {
 
     private void play(Channel c){
         try{
+            playerView.setVisibility(View.VISIBLE);
             String url=c.url;
             if(url.contains("action=create_link")){
                 status.setText("هذا النوع من روابط Stalker يحتاج إلى طلب جلسة تشغيل خاص؛ قد لا يعمل مباشرة على بعض البوابات.");
@@ -250,6 +367,7 @@ public class MainActivity extends Activity {
             if(!q.isEmpty()&&!c.name.toLowerCase(Locale.ROOT).contains(q)&&!(c.group!=null&&c.group.toLowerCase(Locale.ROOT).contains(q)))continue;
             visibleChannels.add(c);
         }
+        if(empty!=null)empty.setText(visibleChannels.size()+" قناة");
         if(listView!=null)((BaseAdapter)listView.getAdapter()).notifyDataSetChanged();
     }
     private void saveFavorites(){prefs.edit().putStringSet("favorites",new HashSet<>(favorites)).apply();}
@@ -273,8 +391,8 @@ public class MainActivity extends Activity {
     }
     private String safeMessage(Exception e){String m=e.getMessage();return m==null?"خطأ غير معروف":m.length()>140?m.substring(0,140):m;}
     private TextView text(String s,int size,int color,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);t.setGravity(Gravity.CENTER_VERTICAL);return t;}
-    private EditText field(String hint){EditText e=new EditText(this);e.setSingleLine(true);e.setTextSize(14);e.setTextColor(Color.WHITE);e.setHintTextColor(Color.GRAY);e.setHint(hint);e.setPadding(dp(10),0,dp(10),0);e.setBackgroundTintList(android.content.res.ColorStateList.valueOf(gold));e.setSelectAllOnFocus(false);return e;}
-    private Button button(String s){Button b=new Button(this);b.setText(s);b.setTextColor(Color.BLACK);b.setAllCaps(false);b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(gold));return b;}
+    private EditText field(String hint){EditText e=new EditText(this);e.setSingleLine(true);e.setTextSize(14);e.setTextColor(Color.WHITE);e.setHintTextColor(Color.rgb(143,157,176));e.setHint(hint);e.setPadding(dp(12),0,dp(12),0);e.setBackground(roundRect(Color.rgb(14,23,38),dp(10)));e.setSelectAllOnFocus(false);return e;}
+    private Button button(String s){Button b=new Button(this);b.setText(s);b.setTextColor(Color.rgb(15,22,34));b.setTextSize(14);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);b.setAllCaps(false);b.setBackground(roundRect(gold,dp(12)));return b;}
     private void styleSpinner(Spinner s){s.setBackgroundTintList(android.content.res.ColorStateList.valueOf(gold));}
     private LinearLayout.LayoutParams match(int h){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,h);p.bottomMargin=dp(5);return p;}
     private int dp(int n){return (int)(n*getResources().getDisplayMetrics().density+0.5f);}
