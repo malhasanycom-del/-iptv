@@ -54,6 +54,7 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(bg); getWindow().setNavigationBarColor(bg);
         prefs=getSharedPreferences("alrashed",MODE_PRIVATE);
         favorites.addAll(prefs.getStringSet("favorites",new HashSet<>()));
+        restoreLibrary();
         // Create the player before building the dashboard. The home page does not
         // create PlayerView, so attaching to playerView here caused a startup crash.
         player=new ExoPlayer.Builder(this).build();
@@ -207,6 +208,11 @@ public class MainActivity extends Activity {
         userField=field("اسم المستخدم");sourceCard.addView(userField,match(dp(48)));
         passField=field("كلمة المرور");passField.setInputType(129);sourceCard.addView(passField,match(dp(48)));
         macField=field("MAC المخصص لاشتراك Stalker");sourceCard.addView(macField,match(dp(48)));
+        sourceSpinner.setSelection(prefs.getInt("last_source_mode",0));
+        addressField.setText(prefs.getString("last_source_address",""));
+        userField.setText(prefs.getString("last_source_user",""));
+        passField.setText(prefs.getString("last_source_pass",""));
+        macField.setText(prefs.getString("last_source_mac",""));
         sourceSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
             @Override public void onItemSelected(AdapterView<?> p,View v,int pos,long id){
                 userField.setVisibility(pos==1?View.VISIBLE:View.GONE);passField.setVisibility(pos==1?View.VISIBLE:View.GONE);
@@ -224,12 +230,18 @@ public class MainActivity extends Activity {
         TextView heading=text(favOnly?"قنواتي المفضلة":"البث المباشر",25,Color.WHITE,true);
         pageContainer.addView(heading,match(dp(44)));
         LinearLayout playerCard=card();pageContainer.addView(playerCard,match(-2));
-        nowPlaying=text("اختر قناة لبدء المشاهدة",16,Color.WHITE,true);playerCard.addView(nowPlaying,match(dp(38)));
+        LinearLayout playerHead=new LinearLayout(this);playerHead.setGravity(Gravity.CENTER_VERTICAL);
+        nowPlaying=text("اختر قناة لبدء المشاهدة",16,Color.WHITE,true);
+        playerHead.addView(nowPlaying,new LinearLayout.LayoutParams(0,dp(42),1));
+        Button fullscreen=secondaryButton("⛶ ملء الشاشة");
+        playerHead.addView(fullscreen,new LinearLayout.LayoutParams(-2,dp(42)));
+        fullscreen.setOnClickListener(v->toggleFullscreen());
+        playerCard.addView(playerHead,match(dp(44)));
         playerView=new PlayerView(this);playerView.setPlayer(player);playerView.setUseController(true);
         playerView.setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS);
         playerView.setResizeMode(getResizeMode());
         playerView.setVisibility(View.VISIBLE);
-        playerCard.addView(playerView,new LinearLayout.LayoutParams(-1,dp(230)));
+        playerCard.addView(playerView,new LinearLayout.LayoutParams(-1,dp(prefs.getInt("player_height_dp",230))));
         status=text("جاهز. حمّل مصدرًا من صفحة المصادر إذا كانت القائمة فارغة.",13,Color.rgb(174,191,210),false);
         playerCard.addView(status,match(-2));
         searchField=field("ابحث باسم القناة أو المجموعة…");pageContainer.addView(searchField,match(dp(50)));
@@ -252,7 +264,7 @@ public class MainActivity extends Activity {
         listView=new ListView(this);listView.setBackgroundColor(panel);
         listView.setDivider(new android.graphics.drawable.ColorDrawable(Color.rgb(38,52,72)));listView.setDividerHeight(dp(1));
         listView.setNestedScrollingEnabled(false);listView.setAdapter(new ChannelAdapter());
-        channels.addView(listView,new LinearLayout.LayoutParams(-1,dp(360)));
+        channels.addView(listView,new LinearLayout.LayoutParams(-1,dp(Math.max(120,visibleChannels.size()*56))));
         listView.setOnItemClickListener((p,v,pos,id)->play(visibleChannels.get(pos)));
         listView.setOnItemLongClickListener((p,v,pos,id)->{
             Channel ch=visibleChannels.get(pos);
@@ -402,7 +414,11 @@ public class MainActivity extends Activity {
                 else if(mode==1) result=loadXtream(address,user,pass);
                 else result=loadStalker(address,mac);
                 runOnUiThread(()->{
-                    allChannels.clear();allChannels.addAll(result);onlyFavorites=false;filterChannels();
+                    allChannels.clear();allChannels.addAll(result);
+                    saveLibrary();
+                    prefs.edit().putInt("last_source_mode",mode).putString("last_source_address",address).putString("last_source_user",user).putString("last_source_pass",pass).putString("last_source_mac",mac).apply();
+                    onlyFavorites=false;
+                    if("sources".equals(currentPage))showPage("live");else filterChannels();
                     status.setText("اكتمل التحميل: "+result.size()+" قناة");
                     if(result.isEmpty())toast("لم نجد قنوات. تحقق من الرابط وبيانات الاشتراك.");
                 });
@@ -501,9 +517,41 @@ public class MainActivity extends Activity {
             visibleChannels.add(c);
         }
         if(empty!=null)empty.setText(visibleChannels.size()+" قناة");
-        if(listView!=null)((BaseAdapter)listView.getAdapter()).notifyDataSetChanged();
+        if(listView!=null){
+            ((BaseAdapter)listView.getAdapter()).notifyDataSetChanged();
+            ViewGroup.LayoutParams lp=listView.getLayoutParams();
+            if(lp!=null){lp.height=dp(Math.max(120,Math.min(200000,visibleChannels.size()*56)));listView.setLayoutParams(lp);}
+        }
     }
     private void saveFavorites(){prefs.edit().putStringSet("favorites",new HashSet<>(favorites)).apply();}
+    private File libraryFile(){return new File(getFilesDir(),"channel_library.json");}
+    private void saveLibrary(){
+        JSONArray arr=new JSONArray();
+        try{
+            for(Channel ch:allChannels){JSONObject o=new JSONObject();o.put("name",ch.name);o.put("url",ch.url);o.put("group",ch.group);o.put("logo",ch.logo);o.put("id",ch.id);arr.put(o);}
+            try(FileOutputStream out=new FileOutputStream(libraryFile())){out.write(arr.toString().getBytes(StandardCharsets.UTF_8));out.flush();}
+        }catch(Exception e){toast("تعذّر حفظ القائمة: "+safeMessage(e));}
+    }
+    private void restoreLibrary(){
+        File file=libraryFile();if(!file.exists())return;
+        try{
+            byte[] bytes=java.nio.file.Files.readAllBytes(file.toPath());
+            JSONArray arr=new JSONArray(new String(bytes,StandardCharsets.UTF_8));
+            for(int i=0;i<arr.length();i++){JSONObject o=arr.getJSONObject(i);allChannels.add(new Channel(o.optString("name","قناة"),o.optString("url",""),o.optString("group",""),o.optString("logo",""),o.optString("id","")));}
+        }catch(Exception e){allChannels.clear();}
+    }
+    private void toggleFullscreen(){
+        boolean full=prefs.getBoolean("fullscreen",false);
+        if(!full){
+            getWindow().getDecorView().setSystemUiVisibility(5894|1024|512|4096);
+            prefs.edit().putBoolean("fullscreen",true).apply();
+            if(playerView!=null){ViewGroup.LayoutParams lp=playerView.getLayoutParams();lp.height=-1;playerView.setLayoutParams(lp);}
+        }else{
+            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+            prefs.edit().putBoolean("fullscreen",false).apply();
+            if(playerView!=null){ViewGroup.LayoutParams lp=playerView.getLayoutParams();lp.height=dp(prefs.getInt("player_height_dp",230));playerView.setLayoutParams(lp);}
+        }
+    }
     private String attr(String line,String key){
         java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?:^|\\s)"+java.util.regex.Pattern.quote(key)+"=\"([^\"]*)\"").matcher(line);
         return m.find()?m.group(1):"";
