@@ -54,9 +54,9 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(bg); getWindow().setNavigationBarColor(bg);
         prefs=getSharedPreferences("alrashed",MODE_PRIVATE);
         favorites.addAll(prefs.getStringSet("favorites",new HashSet<>()));
-        buildUi();
+        // Create the player before building the dashboard. The home page does not
+        // create PlayerView, so attaching to playerView here caused a startup crash.
         player=new ExoPlayer.Builder(this).build();
-        playerView.setPlayer(player);
         player.addListener(new Player.Listener(){
             @Override public void onPlayerError(PlaybackException error){
                 if(status!=null)status.setText("تعذّر التشغيل: "+error.getErrorCodeName()+" — قد يكون الرابط منتهيًا أو الصيغة غير مدعومة");
@@ -65,6 +65,14 @@ public class MainActivity extends Activity {
                 if(status!=null&&prefs.getBoolean("show_status",true)){ if(state==Player.STATE_BUFFERING) status.setText("جارٍ تحميل البث…"); else if(state==Player.STATE_READY) status.setText("البث جاهز"); }
             }
         });
+        buildUi();
+    }
+
+    @Override protected void onDestroy(){
+        if(playerView!=null)playerView.setPlayer(null);
+        if(player!=null){player.release();player=null;}
+        worker.shutdownNow();
+        super.onDestroy();
     }
 
     private LinearLayout pageContainer;
