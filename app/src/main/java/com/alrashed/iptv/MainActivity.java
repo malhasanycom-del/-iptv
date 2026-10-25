@@ -531,5 +531,4 @@ public class MainActivity extends Activity {
     private int dp(int n){return (int)(n*getResources().getDisplayMetrics().density+0.5f);}
     private void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
     @Override protected void onStop(){super.onStop();if(player!=null)player.pause();}
-    @Override protected void onDestroy(){if(player!=null)player.release();worker.shutdownNow();super.onDestroy();}
 }
