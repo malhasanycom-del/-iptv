@@ -39,6 +39,8 @@ public class MainActivity extends Activity {
     private final ArrayList<Channel> allChannels=new ArrayList<>(), visibleChannels=new ArrayList<>();
     private final Set<String> favorites=new HashSet<>();
     private boolean onlyFavorites=false;
+    private boolean loadingSource=false;
+    private String lastPlayedUrl="";
     private SharedPreferences prefs;
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
 
@@ -64,6 +66,7 @@ public class MainActivity extends Activity {
             }
             @Override public void onPlaybackStateChanged(int state){
                 if(status!=null&&prefs.getBoolean("show_status",true)){ if(state==Player.STATE_BUFFERING) status.setText("جارٍ تحميل البث…"); else if(state==Player.STATE_READY) status.setText("البث جاهز"); }
+                if(state==Player.STATE_READY && player!=null && player.getCurrentMediaItem()!=null){ String uri=player.getCurrentMediaItem().localConfiguration==null?"":player.getCurrentMediaItem().localConfiguration.uri.toString(); if(!uri.isEmpty())prefs.edit().putString("last_played_url",uri).apply(); }
             }
         });
         buildUi();
@@ -209,10 +212,12 @@ public class MainActivity extends Activity {
         passField=field("كلمة المرور");passField.setInputType(129);sourceCard.addView(passField,match(dp(48)));
         macField=field("MAC المخصص لاشتراك Stalker");sourceCard.addView(macField,match(dp(48)));
         sourceSpinner.setSelection(prefs.getInt("last_source_mode",0));
-        addressField.setText(prefs.getString("last_source_address",""));
-        userField.setText(prefs.getString("last_source_user",""));
-        passField.setText(prefs.getString("last_source_pass",""));
-        macField.setText(prefs.getString("last_source_mac",""));
+        if(prefs.getBoolean("remember_source",true)){
+            addressField.setText(prefs.getString("last_source_address",""));
+            userField.setText(prefs.getString("last_source_user",""));
+            passField.setText(prefs.getString("last_source_pass",""));
+            macField.setText(prefs.getString("last_source_mac",""));
+        }
         sourceSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
             @Override public void onItemSelected(AdapterView<?> p,View v,int pos,long id){
                 userField.setVisibility(pos==1?View.VISIBLE:View.GONE);passField.setVisibility(pos==1?View.VISIBLE:View.GONE);
@@ -244,6 +249,12 @@ public class MainActivity extends Activity {
         playerCard.addView(playerView,new LinearLayout.LayoutParams(-1,dp(prefs.getInt("player_height_dp",230))));
         status=text("جاهز. حمّل مصدرًا من صفحة المصادر إذا كانت القائمة فارغة.",13,Color.rgb(174,191,210),false);
         playerCard.addView(status,match(-2));
+        if(player!=null && !prefs.getString("last_played_url","").isEmpty()){
+            String previous=prefs.getString("last_played_url","");
+            if(prefs.getBoolean("resume_last_stream",false)){
+                try{player.setMediaItem(MediaItem.fromUri(Uri.parse(previous)));player.prepare();}catch(Exception ignored){}
+            }
+        }
         searchField=field("ابحث باسم القناة أو المجموعة…");pageContainer.addView(searchField,match(dp(50)));
         searchField.addTextChangedListener(new TextWatcher(){
             public void beforeTextChanged(CharSequence s,int st,int c,int a){}
@@ -319,10 +330,11 @@ public class MainActivity extends Activity {
         appearance.addView(text("المظهر والتنظيم",18,Color.WHITE,true),match(dp(38)));
         addToggle(appearance,"قائمة قنوات أكثر كثافة","compact_channels",false,(checked)->{if("live".equals(currentPage)||"favorites".equals(currentPage))showPage(currentPage);});
         appearance.addView(text("اللون الحالي: كحلي وذهبي",13,Color.rgb(174,191,210),false),match(dp(34)));
+        addToggle(behavior,"استئناف آخر رابط تمت مشاهدته","resume_last_stream",false,(checked)->{});
         Button reset=secondaryButton("إعادة ضبط إعدادات المشغّل");
         LinearLayout.LayoutParams rp=match(dp(48));rp.topMargin=dp(12);pageContainer.addView(reset,rp);
         reset.setOnClickListener(v->{
-            prefs.edit().remove("resize_mode").remove("playback_speed").remove("keep_screen_on").remove("auto_play_first").remove("show_status").remove("remember_source").remove("compact_channels").apply();
+            prefs.edit().remove("resize_mode").remove("playback_speed").remove("keep_screen_on").remove("auto_play_first").remove("show_status").remove("remember_source").remove("compact_channels").remove("resume_last_stream").apply();
             if(player!=null)player.setPlaybackSpeed(1f);
             getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             toast("أُعيد ضبط الإعدادات");showPage("settings");
@@ -400,12 +412,14 @@ public class MainActivity extends Activity {
     }
 
     private void loadSource(){
+        if(loadingSource){toast("التحميل جارٍ بالفعل، انتظر حتى يكتمل.");return;}
         final int mode=sourceSpinner.getSelectedItemPosition();
         final String address=addressField.getText().toString().trim();
         final String user=userField.getText().toString().trim(), pass=passField.getText().toString().trim(), mac=macField.getText().toString().trim();
         if(address.isEmpty()){toast("أدخل الرابط أولًا");return;}
         if(mode==1&&(user.isEmpty()||pass.isEmpty())){toast("أدخل اسم المستخدم وكلمة المرور");return;}
         if(mode==2&&mac.isEmpty()){toast("أدخل MAC المخصص لاشتراكك");return;}
+        loadingSource=true;
         status.setText("جارٍ الاتصال وتحميل القنوات…");
         worker.execute(()->{
             try{
@@ -416,30 +430,43 @@ public class MainActivity extends Activity {
                 runOnUiThread(()->{
                     allChannels.clear();allChannels.addAll(result);
                     saveLibrary();
-                    prefs.edit().putInt("last_source_mode",mode).putString("last_source_address",address).putString("last_source_user",user).putString("last_source_pass",pass).putString("last_source_mac",mac).apply();
-                    onlyFavorites=false;
+                    SharedPreferences.Editor sourceEdit=prefs.edit().putInt("last_source_mode",mode);
+                    if(prefs.getBoolean("remember_source",true))sourceEdit.putString("last_source_address",address).putString("last_source_user",user).putString("last_source_pass",pass).putString("last_source_mac",mac);
+                    else sourceEdit.remove("last_source_address").remove("last_source_user").remove("last_source_pass").remove("last_source_mac");
+                    sourceEdit.apply();
+                    onlyFavorites=false;loadingSource=false;
                     if("sources".equals(currentPage))showPage("live");else filterChannels();
-                    status.setText("اكتمل التحميل: "+result.size()+" قناة");
+                    if(status!=null)status.setText("اكتمل التحميل: "+result.size()+" قناة");
                     if(result.isEmpty())toast("لم نجد قنوات. تحقق من الرابط وبيانات الاشتراك.");
+                    else if(prefs.getBoolean("auto_play_first",false)){Channel first=result.get(0);if("live".equals(currentPage)&&playerView!=null)play(first);}
                 });
-            }catch(Exception e){runOnUiThread(()->status.setText("فشل التحميل: "+safeMessage(e)+" — تحقق من بيانات المصدر والإنترنت"));}
+            }catch(Exception e){runOnUiThread(()->{loadingSource=false;if(status!=null)status.setText("فشل التحميل: "+safeMessage(e)+" — تحقق من بيانات المصدر والإنترنت");});}
         });
     }
 
     private ArrayList<Channel> loadM3u(String address)throws Exception{
-        String body=request(address,null,null,20000);
+        String body=request(address,null,null,30000);
+        if(body.trim().isEmpty())throw new Exception("قائمة M3U فارغة");
         ArrayList<Channel> out=new ArrayList<>(); String name="قناة",group="",logo="",id="";
-        for(String raw:body.split("\\r?\\n")){
+        for(String raw:body.replace("\\uFEFF","").split("\\r?\\n")){
             String line=raw.trim(); if(line.isEmpty())continue;
             if(line.startsWith("#EXTINF")){
-                int comma=line.lastIndexOf(','); name=comma>=0?line.substring(comma+1).trim():attr(line,"tvg-name");
-                if(name.isEmpty())name="قناة";
+                int comma=line.lastIndexOf(',');
+                String parsed=attr(line,"tvg-name");
+                name=comma>=0?line.substring(comma+1).trim():parsed;
+                if(name.isEmpty())name=parsed.isEmpty()?"قناة":parsed;
                 group=attr(line,"group-title");logo=attr(line,"tvg-logo");id=attr(line,"tvg-id");
             }else if(line.startsWith("#EXTGRP:")){group=line.substring(8).trim();}
-            else if(!line.startsWith("#")&&(line.startsWith("http://")||line.startsWith("https://"))){
-                out.add(new Channel(name,line,group,logo,id));name="قناة";group="";logo="";id="";
+            else if(!line.startsWith("#")){
+                // M3U entries may use relative URLs and non-HTTP protocols.
+                String stream=line;
+                try{URL base=new URL(address);URL resolved=new URL(base,stream);stream=resolved.toString();}catch(Exception ignored){}
+                if(stream.matches("(?i)^(https?|rtmp|rtsp|udp|rtp)://.*")){
+                    out.add(new Channel(name,stream,group,logo,id));name="قناة";group="";logo="";id="";
+                }
             }
         }
+        if(out.isEmpty())throw new Exception("لم يتم العثور على روابط بث صالحة داخل قائمة M3U");
         return out;
     }
 
@@ -447,7 +474,12 @@ public class MainActivity extends Activity {
         base=base.replaceAll("/+$","");
         String api=base+"/player_api.php?username="+enc(user)+"&password="+enc(pass);
         JSONObject auth=new JSONObject(request(api,null,null,18000));
-        if(auth.has("user_info")&&!auth.getJSONObject("user_info").optString("auth","1").equals("1"))throw new Exception("بيانات Xtream غير مقبولة");
+        JSONObject userInfo=auth.optJSONObject("user_info");
+        if(userInfo!=null){
+            if(!userInfo.optString("auth","1").equals("1"))throw new Exception("بيانات Xtream غير مقبولة");
+            String state=userInfo.optString("status","Active");
+            if(!state.equalsIgnoreCase("Active"))throw new Exception("حالة اشتراك Xtream: "+state);
+        }
         HashMap<String,String> groups=new HashMap<>();
         try{
             JSONArray cats=new JSONArray(request(api+"&action=get_live_categories",null,null,18000));
@@ -559,8 +591,9 @@ public class MainActivity extends Activity {
     private String enc(String s){try{return URLEncoder.encode(s,"UTF-8");}catch(Exception e){return s;}}
     private String request(String url,String cookie,String token,int timeout)throws Exception{
         HttpURLConnection c=(HttpURLConnection)new URL(url.replace(" ","%20")).openConnection();
-        c.setConnectTimeout(timeout);c.setReadTimeout(timeout);c.setRequestProperty("User-Agent","Mozilla/5.0 (Linux; Android 12) AlRashedIPTV/2.0");
+        c.setConnectTimeout(timeout);c.setReadTimeout(timeout);c.setInstanceFollowRedirects(true);c.setRequestProperty("User-Agent","Mozilla/5.0 (Linux; Android 12) AlRashedIPTV/3.1");
         c.setRequestProperty("Accept","*/*");
+        c.setRequestProperty("Connection","close");
         if(cookie!=null)c.setRequestProperty("Cookie",cookie);
         if(token!=null&&!token.isEmpty())c.setRequestProperty("Authorization","Bearer "+token);
         try(InputStream in=(c.getResponseCode()<400?c.getInputStream():c.getErrorStream());ByteArrayOutputStream out=new ByteArrayOutputStream()){
