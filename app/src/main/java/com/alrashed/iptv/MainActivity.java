@@ -62,8 +62,7 @@ public class MainActivity extends Activity {
                 if(status!=null)status.setText("تعذّر التشغيل: "+error.getErrorCodeName()+" — قد يكون الرابط منتهيًا أو الصيغة غير مدعومة");
             }
             @Override public void onPlaybackStateChanged(int state){
-                if(state==Player.STATE_BUFFERING) status.setText("جارٍ تحميل البث…");
-                else if(state==Player.STATE_READY) status.setText("البث جاهز");
+                if(status!=null&&prefs.getBoolean("show_status",true)){ if(state==Player.STATE_BUFFERING) status.setText("جارٍ تحميل البث…"); else if(state==Player.STATE_READY) status.setText("البث جاهز"); }
             }
         });
     }
@@ -296,7 +295,7 @@ public class MainActivity extends Activity {
         addToggle(behavior,"تشغيل أول قناة تلقائيًا بعد التحميل","auto_play_first",false,(checked)->{});
         addToggle(behavior,"إظهار رسائل حالة التشغيل","show_status",true,(checked)->{});
         addToggle(behavior,"استعادة آخر مصدر أدخلته على الجهاز","remember_source",true,(checked)->{});
-        LinearLayout appearance=card();LinearLayout ap=match(-2);ap.topMargin=dp(12);pageContainer.addView(appearance,ap);
+        LinearLayout appearance=card();LinearLayout.LayoutParams ap=match(-2);ap.topMargin=dp(12);pageContainer.addView(appearance,ap);
         appearance.addView(text("المظهر والتنظيم",18,Color.WHITE,true),match(dp(38)));
         addToggle(appearance,"قائمة قنوات أكثر كثافة","compact_channels",false,(checked)->{if("live".equals(currentPage)||"favorites".equals(currentPage))showPage(currentPage);});
         appearance.addView(text("اللون الحالي: كحلي وذهبي",13,Color.rgb(174,191,210),false),match(dp(34)));
