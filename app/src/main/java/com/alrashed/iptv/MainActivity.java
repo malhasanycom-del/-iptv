@@ -90,6 +90,35 @@ public class MainActivity extends Activity {
         brand.addView(sub,match(dp(28)));
         root.addView(brand);
 
+        // TV-first dashboard banner: deliberately different from the old plain form screen.
+        LinearLayout hero=card();
+        hero.setPadding(dp(18),dp(16),dp(18),dp(16));
+        hero.setBackground(roundRect(Color.rgb(18,43,65),dp(20)));
+        LinearLayout.LayoutParams heroParams=match(-2);
+        heroParams.bottomMargin=dp(14);
+        root.addView(hero,heroParams);
+        LinearLayout liveLine=new LinearLayout(this);
+        liveLine.setGravity(Gravity.CENTER_VERTICAL);
+        TextView liveDot=text("●  مباشر",13,Color.rgb(82,220,154),true);
+        liveLine.addView(liveDot,new LinearLayout.LayoutParams(0,dp(28),1));
+        TextView versionTag=text("AL RASHED  •  TV",11,Color.rgb(190,205,222),true);
+        liveLine.addView(versionTag);
+        hero.addView(liveLine,match(dp(30)));
+        TextView heroTitle=text("كل قنواتك في مكان واحد",23,Color.WHITE,true);
+        heroTitle.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+        hero.addView(heroTitle,match(dp(42)));
+        TextView heroSubtitle=text("مشغّل IPTV للموبايل والتلفاز — بحث سريع، مفضلة، وتحكم بالتشغيل",13,Color.rgb(190,205,222),false);
+        heroSubtitle.setMaxLines(2);
+        hero.addView(heroSubtitle,match(dp(42)));
+        LinearLayout metrics=new LinearLayout(this);
+        metrics.setGravity(Gravity.CENTER_VERTICAL);
+        metrics.setPadding(0,dp(8),0,0);
+        TextView metricChannels=text("القنوات  •  جاهز",12,Color.WHITE,true);
+        metrics.addView(metricChannels,new LinearLayout.LayoutParams(0,dp(32),1));
+        TextView metricFav=text("★  "+favorites.size()+" مفضلة",12,gold,true);
+        metrics.addView(metricFav);
+        hero.addView(metrics,match(dp(38)));
+
         LinearLayout sourceCard=card();
         root.addView(sourceCard,match(-2));
         addSectionTitle(sourceCard,"مصدر البث","أضف اشتراكك أو قائمة القنوات");
