@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MyIPTV</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
+<style>
+:root{--a:#0d4f8f;--b:#0a3a70;--sel:#a9cbe8;--dim:#b9d2ea;--acc:#c9d34a;--hl:#1275c4}
+*{box-sizing:border-box;margin:0}html,body{height:100%}
+body{font-family:Roboto,"Segoe UI",Arial,sans-serif;color:#fff;background:linear-gradient(135deg,var(--a),var(--b));overflow:hidden}
+button{font:inherit;cursor:pointer}
+.app{display:grid;grid-template-columns:210px 250px 1fr;height:100%}
+.nav{padding:18px 0;background:rgba(0,0,0,.12)}
+.logo{font-size:32px;font-weight:300;padding:0 22px 24px;letter-spacing:-1px}.logo b{color:var(--acc)}
+.nav button{display:block;width:100%;padding:13px 22px;background:none;border:0;color:#fff;font-size:17px;text-align:left}
+.nav button.on{background:var(--sel);color:#12395f}
+.groups{overflow-y:auto;padding:14px 0;background:rgba(0,0,0,.08)}
+.groups div{padding:10px 24px;font-size:16px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.groups div:hover,.groups div.on{background:rgba(255,255,255,.18)}
+.main{display:flex;flex-direction:column;min-width:0;height:100%}
+.top{display:flex;gap:18px;padding:10px;height:33%;min-height:170px}
+.vw{height:100%;aspect-ratio:16/9;position:relative;background:#000;flex:none}
+video{width:100%;height:100%;object-fit:contain;background:#000}
+.tools{position:absolute;right:4px;bottom:34px;display:flex;gap:4px;opacity:0;transition:.2s}.vw:hover .tools{opacity:1}
+.tools button{background:rgba(0,0,0,.6);border:0;color:#fff;border-radius:4px;padding:5px 8px}
+.info{min-width:0;padding-top:6px}.info h2{font-size:23px;font-weight:500}
+.info .t{color:var(--dim);margin:6px 0}.info .d{font-size:14px;color:var(--dim);max-height:4.6em;overflow:hidden}
+.prog{height:4px;background:rgba(255,255,255,.25);margin:8px 0;max-width:320px}.prog i{display:block;height:100%;background:var(--acc)}
+.bar{display:flex;gap:10px;align-items:center;padding:9px 14px;background:var(--hl)}
+.bar input{margin-left:auto;width:220px;padding:6px 10px;border:0;border-radius:4px;background:rgba(0,0,0,.25);color:#fff}
+.gw{flex:1;overflow:auto;position:relative}
+.gh,.row{display:flex;width:max-content;min-width:100%}
+.gh{position:sticky;top:0;z-index:3;background:#0e63ae}
+.cn{position:sticky;left:0;z-index:2;width:230px;flex:none;display:flex;align-items:center;gap:10px;padding:6px 10px;background:#0c5596;border-bottom:1px solid rgba(255,255,255,.1);cursor:pointer}
+.cn:hover,.cn.on{background:#1b72bd}
+.cn:focus,.groups div:focus,button:focus,.nav button:focus{outline:3px solid var(--acc);outline-offset:-3px}
+.cn img,.cn .ph{width:54px;height:38px;object-fit:contain;background:#fff;border-radius:3px;flex:none}.cn .ph{background:rgba(255,255,255,.2)}
+.cn span{flex:1;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cn i{font-style:normal;opacity:.4;font-size:18px}.cn i.f{color:var(--acc);opacity:1}
+.tl{position:relative;width:1440px;height:50px;border-bottom:1px solid rgba(255,255,255,.1);flex:none}
+.tl .p{position:absolute;top:2px;bottom:2px;padding:4px 8px;background:rgba(255,255,255,.1);border-radius:3px;font-size:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer}
+.tl .p:hover{background:rgba(255,255,255,.25)}.tl .p.nw{background:rgba(201,211,74,.28)}
+.now{position:absolute;top:0;bottom:0;width:2px;background:#ff5252;z-index:1}
+.tm{position:absolute;top:8px;font-size:14px}
+.pn{padding:26px;max-width:640px;line-height:1.7;overflow:auto;height:100%}
+.pn h3{margin:18px 0 6px}.pn input,.pn select{padding:8px;border:0;border-radius:4px;margin:3px 3px 3px 0;width:100%;max-width:420px}
+.pn button{padding:8px 14px;border:0;border-radius:4px;background:var(--acc);color:#12395f;font-weight:700;margin:3px 3px 3px 0}
+.pn button.x{background:rgba(255,255,255,.2);color:#fff}
+.pl{display:flex;gap:6px;align-items:center;padding:6px 0}.pl span{flex:1}
+.msg{color:#ffd0a0;font-size:14px}
+@media(max-width:800px){.app{grid-template-columns:1fr;grid-template-rows:auto auto 1fr}
+.nav{display:flex;padding:0;overflow-x:auto}.logo{display:none}.nav button{width:auto;padding:11px 14px;font-size:15px}
+.groups{display:flex;padding:0;overflow-x:auto}.groups div{padding:9px 13px}
+.top{flex-direction:column;height:auto}.vw{width:100%;height:auto}.cn{width:130px}.cn img,.cn .ph{display:none}.bar input{width:120px}}
+</style></head><body>
+<div class="app">
+ <nav class="nav" id="nav"><div class="logo"><b>my</b>iptv</div></nav>
+ <aside class="groups" id="groups"></aside>
+ <section class="main" id="main">
+  <div class="top">
+   <div class="vw" id="vw"><video id="v" controls autoplay playsinline></video>
+    <div class="tools"><button onclick="prevCh()" title="Last channel (B)">⏮</button><button onclick="aspect()" title="Aspect ratio">▭</button><button onclick="audio()" title="Audio track">🔊</button><button onclick="sleep()" title="Sleep timer">⏲</button><button onclick="fs()" title="Fullscreen (F)">⛶</button></div></div>
+   <div class="info"><h2 id="t1">No channel selected</h2><div class="t" id="t2">Pick a channel from the guide</div><div class="prog"><i id="pg" style="width:0"></i></div><div class="d" id="t3"></div></div>
+  </div>
+  <div class="bar"><span id="clk"></span><input id="q" placeholder="Search" oninput="q=this.value.toLowerCase();draw()"></div>
+  <div class="gw" id="gw"></div>
+ </section>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let S=Object.assign({pls:[],act:0,favs:[],hid:[],lock:[],pin:"0000",asp:0},load("s",{}));
+let ch=[],epg={},view="tv",grp="All channels",cur=null,prev=null,hls=null,q="",unlocked=new Set(),sleepT=null;
+const K=0.0001,SPAN=14400000,ASP=["contain","cover","fill"];
+const sv=()=>save("s",S),esc=s=>String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+
+/* ---------- parsing ---------- */
+function parseM3U(t){const o=[];let m=null;for(const l of t.split(/\r?\n/)){
+ if(l.startsWith("#EXTINF")){const g=k=>(l.match(new RegExp(k+'="([^"]*)"'))||[])[1]||"";
+  m={name:l.split(",").pop().trim(),logo:g("tvg-logo"),group:g("group-title")||"Other",id:g("tvg-id")}}
+ else if(l&&!l.startsWith("#")&&m){m.url=l.trim();o.push(m);m=null}}return o}
+function pt(s){const r=/(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)\s*([+-]\d{4})?/.exec(s);if(!r)return 0;
+ let off=0;if(r[7])off=(r[7][0]=="-"?-1:1)*(+r[7].slice(1,3)*60+ +r[7].slice(3,5));
+ return Date.UTC(+r[1],r[2]-1,+r[3],+r[4],+r[5],+r[6])-off*6e4}
+function parseEPG(x){const d=new DOMParser().parseFromString(x,"text/xml"),o={};
+ d.querySelectorAll("programme").forEach(p=>{const c=p.getAttribute("channel");
+  (o[c]=o[c]||[]).push({s:pt(p.getAttribute("start")),e:pt(p.getAttribute("stop")),
+  t:p.querySelector("title")?.textContent||"",d:p.querySelector("desc")?.textContent||""})});
+ Object.values(o).forEach(a=>a.sort((a,b)=>a.s-b.s));epg=o}
+
+/* ---------- loading ---------- */
+async function jget(u,h){const r=await fetch(u,{headers:h});if(!r.ok)throw Error("HTTP "+r.status);const t=await r.text();try{return JSON.parse(t)}catch(e){return t}}
+let stkH=null,stkEp="";
+async function loadX(p){const b=p.url.replace(/\/+$/,""),q=`username=${encodeURIComponent(p.user)}&password=${encodeURIComponent(p.pass)}`,a=`${b}/player_api.php?${q}`;
+ const [cl,ls,vc,vs]=await Promise.all(["get_live_categories","get_live_streams","get_vod_categories","get_vod_streams"].map(x=>jget(`${a}&action=${x}`)));
+ if(!Array.isArray(ls))throw Error("Login failed");
+ const cm={},vm={};cl.forEach(c=>cm[c.category_id]=c.category_name);(vc||[]).forEach(c=>vm[c.category_id]=c.category_name);const cr=`${p.user}/${p.pass}`;
+ ch=ls.map(x=>({name:x.name,logo:x.stream_icon||"",group:cm[x.category_id]||"Other",id:x.epg_channel_id||"",url:`${b}/live/${cr}/${x.stream_id}.m3u8`}))
+  .concat((vs||[]).map(x=>({kind:"movie",name:x.name,logo:x.stream_icon||"",group:"Movies | "+(vm[x.category_id]||"Other"),id:"",url:`${b}/movie/${cr}/${x.stream_id}.${x.container_extension||"mp4"}`})));
+ epg={};fetch(`${b}/xmltv.php?${q}`).then(r=>r.text()).then(parseEPG).then(draw).catch(()=>{})}
+async function loadS(p){const base=p.url.replace(/\/+$/,"").replace(/\/c$/,""),ep=base+"/server/load.php",mac=p.mac.toUpperCase();
+ const H={Cookie:`mac=${mac}; stb_lang=en; timezone=GMT`,"X-User-Agent":"Model: MAG250; Link: WiFi","User-Agent":"Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3"};
+ const hs=await jget(`${ep}?type=stb&action=handshake&token=&JsHttpRequest=1-xml`,H);H.Authorization="Bearer "+hs.js.token;stkH=H;stkEp=ep;
+ await jget(`${ep}?type=stb&action=get_profile&JsHttpRequest=1-xml`,H);
+ const g=await jget(`${ep}?type=itv&action=get_genres&JsHttpRequest=1-xml`,H),m={};g.js.forEach(x=>m[x.id]=x.title);
+ const all=await jget(`${ep}?type=itv&action=get_all_channels&JsHttpRequest=1-xml`,H);
+ ch=all.js.data.map(c=>({name:c.name,logo:c.logo?(/^http/.test(c.logo)?c.logo:base+"/misc/logos/320/"+c.logo):"",group:m[c.tv_genre_id]||"Other",id:c.xmltv_id||"",cmd:c.cmd,url:"stk:"+c.id}));epg={}}
+async function resolve(c){if(!c.cmd)return c.url;const r=await jget(`${stkEp}?type=itv&action=create_link&cmd=${encodeURIComponent(c.cmd)}&JsHttpRequest=1-xml`,stkH);return String(r.js.cmd).replace(/^\S+\s+/,"")}
+async function loadPl(i){const p=S.pls[i];if(!p)return;S.act=i;sv();
+ try{if(p.type=="xtream")await loadX(p);else if(p.type=="stalker")await loadS(p);
+  else{const r=await fetch(p.url);if(!r.ok)throw Error("HTTP "+r.status);ch=parseM3U(await r.text());epg={};
+   if(p.epg)fetch(p.epg).then(r=>r.text()).then(parseEPG).then(draw).catch(()=>{})}
+  go("tv")}
+ catch(e){go("settings");$("msg").textContent="Could not load: "+e.message+" (a browser may block this with CORS – use the APK)"}}
+function fileIn(inp,kind){const f=inp.files[0];if(!f)return;const r=new FileReader();
+ r.onload=()=>{if(kind=="m3u"){ch=parseM3U(r.result);go("tv")}else{parseEPG(r.result);$("msg").textContent="EPG loaded"}};r.readAsText(f)}
+function addPl(){const t=$("pt").value,u=$("pu").value.trim();if(!u)return;S.pls.push({type:t,name:$("pn").value||"Playlist "+(S.pls.length+1),url:u,epg:$("pe").value.trim(),user:$("px").value.trim(),pass:$("ps").value.trim(),mac:$("pm").value.trim()});sv();loadPl(S.pls.length-1)}
+function ptype(){const t=$("pt").value,d=(i,v)=>$(i).style.display=v?"":"none";d("pe",t=="m3u");d("px",t=="xtream");d("ps",t=="xtream");d("pm",t=="stalker");$("pu").placeholder=t=="m3u"?"M3U URL":t=="xtream"?"http://server:port":"http://portal.example.com/c/"}
+function delPl(i){S.pls.splice(i,1);S.act=0;sv();go("settings")}
+
+/* ---------- views ---------- */
+const NAV=[["tv","TV"],["movies","Movies"],["series","TV shows"],["settings","Settings"]];
+function go(v){view=v;$("nav").innerHTML='<div class="logo"><b>my</b>iptv</div>'+NAV.map(n=>`<button class="${n[0]==v?"on":""}" onclick="go('${n[0]}')">${n[1]}</button>`).join("");
+ if(v=="settings"){$("gw").innerHTML=settingsHTML();$("groups").innerHTML="";return}
+ grp="All channels";groups();draw()}
+function inView(c){const g=c.group;if(view=="movies")return c.kind=="movie"||/movie|vod|film|cinema/i.test(g);
+ if(view=="series")return/series|show|season/i.test(g);return c.kind!="movie"&&!/^(movies?|vod|series)\b/i.test(g)}
+function groups(){const base=ch.filter(inView),names=[...new Set(base.map(c=>c.group))].sort();
+ $("groups").innerHTML=["Favorites","All channels",...names].map(n=>`<div tabindex="0" class="${n==grp?"on":""}" data-g="${esc(n)}">${S.lock.includes(n)?"🔒 ":""}${esc(n)}</div>`).join("");
+ $("groups").querySelectorAll("div").forEach(d=>d.onclick=()=>pick(d.dataset.g))}
+function pick(n){if(S.lock.includes(n)&&!unlocked.has(n)){if(prompt("Enter PIN")!==S.pin)return;unlocked.add(n)}grp=n;groups();draw()}
+function list(){return ch.filter(c=>inView(c)&&!S.hid.includes(c.url)&&(grp=="All channels"||(grp=="Favorites"?S.favs.includes(c.url):c.group==grp))
+ &&!(S.lock.includes(c.group)&&!unlocked.has(c.group))&&c.name.toLowerCase().includes(q))}
+
+/* ---------- guide ---------- */
+function nowP(c){const n=Date.now();return(epg[c.id]||[]).find(p=>p.s<=n&&p.e>n)}
+function draw(){if(view=="settings")return;const n=Date.now(),t0=Math.floor((n-18e5)/18e5)*18e5,en=t0+SPAN,l=list().slice(0,250);
+ let h='<div class="gh"><div class="cn" style="cursor:default"><span>'+new Date().toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"})+'</span></div><div class="tl" style="height:34px">';
+ for(let t=t0;t<en;t+=18e5)h+=`<div class="tm" style="left:${(t-t0)*K+6}px">${new Date(t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>`;
+ h+=`<div class="now" style="left:${(n-t0)*K}px"></div></div></div>`;
+ l.forEach(c=>{const fav=S.favs.includes(c.url),ps=(epg[c.id]||[]).filter(p=>p.e>t0&&p.s<en);
+  const logo=c.logo?`<img src="${esc(c.logo)}" loading="lazy" onerror="this.outerHTML='<div class=ph></div>'">`:'<div class="ph"></div>';
+  h+=`<div class="row"><div tabindex="0" class="cn ${cur&&cur.url==c.url?"on":""}" data-u="${esc(c.url)}">${logo}<span>${esc(c.name)}</span><i class="${fav?"f":""}">★</i></div><div class="tl" data-u="${esc(c.url)}">`;
+  h+=ps.length?ps.map(p=>{const a=Math.max(p.s,t0),b=Math.min(p.e,en);return`<div class="p ${p.s<=n&&p.e>n?"nw":""}" style="left:${(a-t0)*K}px;width:${(b-a)*K-3}px" title="${esc(p.t)}">${esc(p.t)}</div>`}).join(""):'<div class="p" style="left:0;width:300px;opacity:.6">No information</div>';
+  h+=`<div class="now" style="left:${(n-t0)*K}px"></div></div></div>`});
+ if(!l.length)h+='<div class="pn">No channels here. Add a playlist in Settings.</div>';
+ const gw=$("gw"),sl=gw.scrollLeft,st=gw.scrollTop;gw.innerHTML=h;gw.scrollLeft=sl;gw.scrollTop=st;
+ gw.querySelectorAll(".cn[data-u],.tl[data-u]").forEach(e=>{const c=ch.find(x=>x.url==e.dataset.u);
+  e.onclick=ev=>{if(ev.target.tagName=="I"){fav(c)}else play(c)};e.oncontextmenu=ev=>{ev.preventDefault();if(confirm("Hide \""+c.name+"\"?")){S.hid.push(c.url);sv();draw()}}})}
+function fav(c){const i=S.favs.indexOf(c.url);i<0?S.favs.push(c.url):S.favs.splice(i,1);sv();draw()}
+
+/* ---------- player ---------- */
+async function play(c){if(cur&&cur!==c)prev=cur;cur=c;const v=$("v");if(hls){hls.destroy();hls=null}
+ const u=await resolve(c).catch(e=>{$("t3").textContent="Link failed: "+e.message;return null});if(!u)return;
+ if(/\.(mp4|mkv|avi)(\?|$)/i.test(u)||v.canPlayType("application/vnd.apple.mpegurl")&&!window.Hls)v.src=u;
+ else if(window.Hls&&Hls.isSupported()){hls=new Hls();hls.loadSource(u);hls.attachMedia(v);
+  hls.on(Hls.Events.ERROR,(_,d)=>{if(d.fatal)$("t3").textContent="Stream failed ("+d.type+"). HTTP streams are blocked on HTTPS pages."})}
+ else v.src=u;
+ v.style.objectFit=ASP[S.asp%3];v.play().catch(()=>{});info();draw()}
+function info(){if(!cur)return;const p=nowP(cur),nx=(epg[cur.id]||[]).find(x=>p&&x.s>=p.e);
+ $("t1").textContent=p?p.t:cur.name;const f=t=>new Date(t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+ $("t2").textContent=cur.name+(p?"  ·  "+f(p.s)+" – "+f(p.e):"")+(nx?"  ·  Next: "+nx.t:"");
+ $("t3").textContent=p?p.d:"";$("pg").style.width=p?Math.min(100,(Date.now()-p.s)/(p.e-p.s)*100)+"%":"0"}
+const prevCh=()=>prev&&play(prev);
+function aspect(){S.asp=(S.asp+1)%3;sv();$("v").style.objectFit=ASP[S.asp]}
+function audio(){if(hls&&hls.audioTracks.length>1){hls.audioTrack=(hls.audioTrack+1)%hls.audioTracks.length;alert("Audio: "+(hls.audioTracks[hls.audioTrack].name||hls.audioTrack))}else alert("No other audio tracks")}
+function sleep(){const m=+prompt("Sleep timer (minutes, 0 = off)","30");clearTimeout(sleepT);if(m>0)sleepT=setTimeout(()=>$("v").pause(),m*6e4)}
+function fs(){const e=$("vw");document.fullscreenElement?document.exitFullscreen():e.requestFullscreen?.()}
+function zap(d){const l=list();if(!l.length)return;const i=l.findIndex(c=>cur&&c.url==cur.url);play(l[(i+d+l.length)%l.length])}
+document.addEventListener("keydown",e=>{if(/INPUT|SELECT/.test(e.target.tagName))return;
+ if(e.key=="ArrowUp"&&document.fullscreenElement){zap(-1);e.preventDefault()}
+ if(e.key=="ArrowDown"&&document.fullscreenElement){zap(1);e.preventDefault()}
+ if(e.key=="Enter"&&document.activeElement&&document.activeElement.tabIndex==0)document.activeElement.click();
+ if(e.key=="b"||e.key=="B"||e.key=="Backspace"&&document.fullscreenElement)prevCh();if(e.key=="f"||e.key=="F")fs()});
+
+/* ---------- settings ---------- */
+function settingsHTML(){return`<div class="pn"><h3>Playlists</h3>${S.pls.map((p,i)=>`<div class="pl"><span>${i==S.act?"● ":""}${esc(p.name)}</span><button onclick="loadPl(${i})">Open</button><button class="x" onclick="delPl(${i})">Delete</button></div>`).join("")||"<div>No playlists yet.</div>"}
+<h3>Add playlist</h3><select id="pt" onchange="ptype()"><option value="m3u">M3U URL</option><option value="xtream">Xtream Codes</option><option value="stalker">Stalker portal (MAC)</option></select><input id="pn" placeholder="Name"><input id="pu" placeholder="M3U URL"><input id="pe" placeholder="EPG (XMLTV) URL – optional"><input id="px" placeholder="Username" style="display:none"><input id="ps" placeholder="Password" style="display:none"><input id="pm" placeholder="MAC 00:1A:79:XX:XX:XX" style="display:none"><button onclick="addPl()">Add</button>
+<h3>Or load files (this session only)</h3>M3U <input type="file" onchange="fileIn(this,'m3u')">EPG (.xml) <input type="file" onchange="fileIn(this,'epg')">
+<h3>Parental control</h3><input id="pin" placeholder="New PIN" value="${esc(S.pin)}"><button onclick="S.pin=$('pin').value;sv();$('msg').textContent='PIN saved'">Save PIN</button>
+<div>Lock current group: <button onclick="lockG()">${S.lock.includes(grp)?"Unlock":"Lock"} “${esc(grp)}”</button></div>
+<h3>Other</h3><button class="x" onclick="S.hid=[];sv();$('msg').textContent='Hidden channels restored'">Restore hidden channels</button><button class="x" onclick="S.favs=[];sv();$('msg').textContent='Favorites cleared'">Clear favorites</button>
+<div class="msg" id="msg"></div><p style="font-size:13px;color:var(--dim);margin-top:14px">Keys: B last channel · F fullscreen · ↑/↓ zap in fullscreen · right-click a channel to hide it.</p></div>`}
+function lockG(){if(["Favorites","All channels"].includes(grp))return $("msg").textContent="Pick a real group in TV first";
+ const i=S.lock.indexOf(grp);i<0?S.lock.push(grp):S.lock.splice(i,1);sv();$("gw").innerHTML=settingsHTML()}
+
+/* ---------- boot ---------- */
+setInterval(()=>{$("clk").textContent=new Date().toLocaleString([],{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});info();if(view!="settings")draw()},30000);
+$("clk").textContent=new Date().toLocaleString([],{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+S.pls.length?loadPl(S.act):go("settings");
+</script></body></html>
