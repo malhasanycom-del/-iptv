@@ -11,6 +11,10 @@ on:
       - '.github/workflows/myiptv-apk.yml'
   workflow_dispatch:
 
+concurrency:
+  group: myiptv-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
