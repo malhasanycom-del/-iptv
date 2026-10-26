@@ -43,10 +43,10 @@ jobs:
       - name: Accept Android SDK licenses
         run: |
           set +o pipefail
-          yes | sdkmanager --licenses
+          yes | /usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager --licenses
 
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+        run: /usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Install npm dependencies
         run: npm install
