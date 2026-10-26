@@ -60,6 +60,20 @@ jobs:
       - name: Install npm dependencies
         run: npm install
 
+      - name: Validate app JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path("www/index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r'<script(?:\\s[^>]*)?>(.*?)</script>', html, re.S | re.I)
+          inline = [s for s in scripts if s.strip()]
+          if not inline:
+              raise SystemExit("No inline application script found")
+          Path("/tmp/myiptv-inline.js").write_text(inline[-1], encoding="utf-8")
+          PY
+          node --check /tmp/myiptv-inline.js
+
       - name: Bundle HLS playback library locally
         run: |
           mkdir -p www/vendor
