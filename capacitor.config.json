@@ -1,0 +1,14 @@
+{
+  "appId": "com.myiptv.app",
+  "appName": "MyIPTV",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
