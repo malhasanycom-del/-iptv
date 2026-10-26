@@ -133,6 +133,41 @@ body>.app{display:none!important}
 @media(max-width:1200px){.pro-main{padding:0 22px 40px}.pro-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.pro-hero-art{width:210px}.pro-cats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){.pro-shell{grid-template-columns:78px minmax(0,1fr)}.pro-side{padding:18px 9px}.pro-brand{padding:5px 8px 24px;justify-content:center}.pro-brand>div:last-child,.pro-nav-label,.pro-nav button .nav-label,.pro-side-foot{display:none}.pro-nav button{justify-content:center;padding:13px 5px}.pro-nav .ico{font-size:20px}.pro-main{padding:0 18px 35px}.pro-live-layout{grid-template-columns:1fr}.pro-channel-list{max-height:340px}.pro-hero{min-height:270px;padding:25px}.pro-hero-art{width:170px}.pro-orb{width:130px;height:130px;font-size:55px}.pro-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.pro-shell{display:block;padding-bottom:72px}.pro-side{position:fixed;left:0;right:0;top:auto;bottom:0;width:100%;height:68px;padding:6px 7px;border-right:0;border-top:1px solid var(--line);background:#09111ff2;z-index:50;backdrop-filter:blur(20px)}.pro-brand,.pro-nav-label,.pro-side-foot{display:none}.pro-nav{height:100%;flex-direction:row;align-items:stretch;justify-content:space-around;gap:2px}.pro-nav button{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:5px 1px;border-radius:9px;font-size:9px;justify-content:center;text-align:center}.pro-nav button .ico{font-size:17px;width:auto}.pro-nav button .nav-label{display:block;font-size:9px;font-weight:600}.pro-main{padding:0 13px 28px}.pro-topbar{min-height:75px;gap:10px}.pro-heading{min-width:0;flex:1}.pro-heading h1{font-size:20px}.pro-heading p{font-size:10px}.pro-search{width:42%;}.pro-search input{padding:10px 9px 10px 31px;font-size:11px}.pro-search span{left:10px;top:8px;font-size:15px}.pro-avatar{display:none}.pro-screen{padding-top:17px}.pro-hero{min-height:0;padding:22px;border-radius:19px}.pro-hero h2{font-size:28px}.pro-hero p{font-size:12px}.pro-hero-art{display:none}.pro-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:13px 0 22px}.pro-stat{padding:13px}.pro-stat strong{font-size:22px}.pro-stat .s-icon{margin-bottom:9px}.pro-cats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.pro-cat{min-height:95px;padding:13px}.pro-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.pro-poster{border-radius:12px}.pro-card h3{font-size:12px}.pro-section-head{margin:22px 0 12px}.pro-title{font-size:24px}.pro-form-grid{grid-template-columns:1fr}.pro-form-grid .wide{grid-column:auto}.pro-guide-row{grid-template-columns:1fr;gap:9px}.pro-player-area.mini .pro-player{aspect-ratio:16/9}.pro-player-controls .pro-btn{flex:1}.pro-playlist-row{align-items:flex-start;flex-wrap:wrap}.pro-playlist-info{min-width:calc(100% - 65px)}.pro-playlist-actions{width:100%;padding-left:58px}.pro-setting-row{align-items:flex-start;flex-wrap:wrap}.pro-setting-row select,.pro-setting-row input{max-width:150px}.pro-toast{right:12px;bottom:82px}}
+
+/* Cinematic artwork + smooth navigation motion */
+#pro{position:relative;isolation:isolate;background:
+ radial-gradient(ellipse at 12% 4%,#163e64a6,transparent 34%),
+ radial-gradient(ellipse at 90% 30%,#4a286c66,transparent 38%),
+ linear-gradient(145deg,#060b15,#0a1222 55%,#100d20)!important}
+#pro:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.20;background-image:url("https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1800&q=75");background-size:cover;background-position:center;background-attachment:fixed;mask-image:linear-gradient(110deg,#000 0%,transparent 88%)}
+.pro-main{position:relative}
+.pro-screen{animation:iptvScreenIn .42s cubic-bezier(.2,.75,.25,1) both;transform-origin:50% 8%}
+@keyframes iptvScreenIn{from{opacity:0;transform:translateY(13px) scale(.992);filter:blur(3px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+.pro-hero{background-color:#101a2b;background-image:linear-gradient(100deg,rgba(5,12,24,.96) 0%,rgba(8,15,31,.83) 46%,rgba(14,14,35,.35) 100%),url("https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=1600&q=85");background-size:cover;background-position:center 42%;transition:background-position .8s ease,box-shadow .35s ease;box-shadow:0 18px 55px #0004}
+.pro-hero:hover{background-position:center 48%;box-shadow:0 24px 65px #0006,0 0 0 1px #55d6ff20}
+.pro-hero:before{background:radial-gradient(ellipse at 78% 50%,#6a5bff5c,transparent 35%),linear-gradient(90deg,transparent,#08111c25)}
+.pro-hero:after{animation:iptvOrbit 18s linear infinite}
+@keyframes iptvOrbit{to{transform:rotate(360deg)}}
+.pro-orb{animation:iptvFloat 6s ease-in-out infinite;box-shadow:0 30px 70px #0508118c,inset 0 2px 1px #ffffff9e,0 0 48px #756cff38}
+@keyframes iptvFloat{0%,100%{transform:translateY(0) rotate(-13deg)}50%{transform:translateY(-10px) rotate(-9deg)}}
+.pro-float{animation:iptvFloatCard 5s ease-in-out infinite}.pro-float.b{animation-delay:-2.2s}
+@keyframes iptvFloatCard{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.pro-nav button{position:relative;overflow:hidden;transition:background .22s,color .22s,transform .22s,border-color .22s,box-shadow .22s}
+.pro-nav button:active,.pro-btn:active,.pro-cat:active,.pro-card:active{transform:scale(.975)}
+.pro-nav button.active:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent,#55d6ff0b,transparent);animation:iptvSheen 3.8s ease-in-out infinite}
+@keyframes iptvSheen{0%,100%{opacity:.15;transform:translateX(-35%)}50%{opacity:1;transform:translateX(35%)}}
+.pro-stat,.pro-cat,.pro-card,.pro-channel,.pro-playlist-row,.pro-panel{transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease,background-color .24s ease}
+.pro-stat:hover,.pro-cat:hover,.pro-card:hover{transform:translateY(-4px);border-color:#55d6ff4a;box-shadow:0 14px 34px #0003}
+.pro-card:hover .pro-poster img{transform:scale(1.045);filter:saturate(1.12)}
+.pro-poster img{transition:transform .5s cubic-bezier(.2,.7,.2,1),filter .4s}
+.pro-channel:hover,.pro-playlist-row:hover{transform:translateX(3px);border-color:#55d6ff40}
+.pro-btn{position:relative;overflow:hidden;transition:transform .2s ease,box-shadow .2s ease,background .2s ease}
+.pro-btn.primary:hover{box-shadow:0 10px 28px #55d6ff35}
+.pro-section-head{animation:iptvFadeUp .45s .05s both}
+@keyframes iptvFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+@media(max-width:700px){#pro:before{opacity:.12;background-attachment:scroll}.pro-hero{background-position:58% center}.pro-hero:hover{background-position:58% center}.pro-orb{animation:none}.pro-hero:after{animation:none}}
+
 </style></head><body>
 <div class="app">
  <nav class="nav" id="nav"><div class="logo"><b>my</b>iptv</div></nav>
